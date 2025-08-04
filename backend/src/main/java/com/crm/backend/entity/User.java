@@ -1,44 +1,33 @@
 package com.crm.backend.entity;
 
-import java.time.LocalDateTime;
-
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
+@Data // it is used to create getter , setter and tostring 
+@NoArgsConstructor  // it is used to create a constructor without argunments
+@AllArgsConstructor   // it is used to create a constructor with aurgunments
 @Entity
-@Data // Generates getters, setters, toString, equals, hashCode
-@NoArgsConstructor // it create a constructor with no arguments 
-@AllArgsConstructor  // it create a constructor with arguments
+@Table(name= "User_Data")
+
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String phoneNumber;
-    private String password;
-    private String role;
-    private String status;
+    private String userName;
 
-    private String addressLine1;
-    private String addressLine2;
-    private String city;
-    private String state;
-    private String zipCode;
-    private String country;
+    @Column(name = "User_Email")
+    private String userEmail;
 
-    private String companyName;
-    private String customerType;
-    private String source;
+    private String userRole;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime lastLoginTime;
 }
