@@ -2,6 +2,7 @@ package com.crm.backend.entity;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -10,6 +11,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name="Otp_Store")
+
 public class Otp {
 
     @Id
@@ -23,6 +25,13 @@ public class Otp {
     private Long otp;
 
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private boolean used;
+
+    // Getters and setters
+    public boolean isUsed() { return used; }
+    public void setUsed(boolean used) { this.used = used; }
 
     public Long getId() {
         return id;

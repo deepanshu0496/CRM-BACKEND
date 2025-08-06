@@ -1,7 +1,9 @@
 package com.crm.backend.controllers;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,7 @@ import com.crm.backend.dto.OtpRequest;
 import com.crm.backend.dto.OtpVerificationRequest;
 import com.crm.backend.entity.Otp;
 import com.crm.backend.repository.UserRepo;
+import com.crm.backend.services.JwtService;
 import com.crm.backend.services.OtpService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +37,9 @@ public class OtpGen {
     private UserRepo userRepo;
 
     @Autowired
+    JwtService jwtService;
+
+    @Autowired
     private OtpService otpService;
 
     private String generateOtp(int length) {
@@ -45,59 +51,94 @@ public class OtpGen {
     }
 
     @PostMapping("generate")
-    public Map<String, String> generateOtpAndSend(@RequestBody OtpRequest otpRequest) {
-        String otp = generateOtp(6);
-        Long otpValue = Long.parseLong(otp); // Convert String OTP to Long
-
-        // Get user role (you need to implement this based on your User entity)
-        String userRole = "USER"; // Default role or get from userRepo
-        
-        // store otp
-        otpService.saveOtp(otpRequest.getEmail(), userRole, otpValue);
-
-        // send otp to email
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("regenxscout@regensportz.com");
-            message.setTo(otpRequest.getEmail());
-            message.setSubject("Your OTP Code");
-            message.setText("Your OTP Is: " + otp);
-            javaMailSender.send(message);
-        } catch (Exception e) {
-            log.error("Exception while sending the OTP to mail", e);
-            throw new RuntimeException("Failed to send OTP email");
-        }
-
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("message", "OTP sent to email: " + otpRequest.getEmail());
-        return response;
+public Map<String, String> generateOtpAndSend(@RequestBody OtpRequest otpRequest) {
+    // Validate email
+    if (otpRequest.getEmail() == null || otpRequest.getEmail().trim().isEmpty()) {
+        throw new IllegalArgumentException("Email is required");
     }
+
+    // Validate role exists and is one of the allowed values
+    if (otpRequest.getRole() == null || otpRequest.getRole().trim().isEmpty()) {
+        throw new IllegalArgumentException("Role is required");
+    }
+
+    // List of valid roles (should match your frontend)
+    List<String> validRoles = Arrays.asList(
+        "administrator",
+        "Sales Representative", 
+        "Sales Manager",
+        "Marketing Professional",
+        "Customer Support",
+        "Executive",
+        "finance_officer",
+        "support_user"
+    );
+
+    if (!validRoles.contains(otpRequest.getRole())) {
+        throw new IllegalArgumentException("Invalid role selected");
+    }
+
+    String otp = generateOtp(6);
+    Long otpValue = Long.parseLong(otp);
+
+    // Store OTP with user email and role
+    otpService.saveOtp(otpRequest.getEmail(), otpRequest.getRole(), otpValue);
+
+    // Send OTP via email
+    try {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("regenxscout@regensportz.com");
+        message.setTo(otpRequest.getEmail());
+        message.setSubject("Your OTP Code");
+        message.setText("Your OTP is: " + otp + "\n\nRole: " + otpRequest.getRole());
+        javaMailSender.send(message);
+    } catch (Exception e) {
+        log.error("Exception while sending OTP email", e);
+        throw new RuntimeException("Failed to send OTP email");
+    }
+
+    Map<String, String> response = new HashMap<>();
+    response.put("status", "success");
+    response.put("message", "OTP sent to email: " + otpRequest.getEmail());
+    return response;
+}
+
 
     // verify otp
 
     @PostMapping("verify")
-    public Map<String, Object> verifyOtp(@RequestBody OtpVerificationRequest verificationRequest) {
-        boolean isValid = otpService.verifyOtp(
-            verificationRequest.getEmail(),
-            verificationRequest.getOtp(),
-            verificationRequest.getuserRole()
-        );
+public Map<String, Object> verifyOtp(@RequestBody OtpVerificationRequest verificationRequest) {
+    boolean isValid = otpService.verifyOtp(
+        verificationRequest.getEmail(),
+        verificationRequest.getOtp(),
+        verificationRequest.getuserRole()
+    );
+
+    Map<String, Object> response = new HashMap<>();
+    if (isValid) {
+        Long otpValue = Long.parseLong(verificationRequest.getOtp());
+        Otp otp = otpService.findByEmailAndOtp(verificationRequest.getEmail(), otpValue);
         
-        Map<String, Object> response = new HashMap<>();
-        if (isValid) {
-            response.put("status", "success");
-            response.put("message", "OTP verified successfully");
-            
-            // Optionally mark OTP as used
-            Long otpValue = Long.parseLong(verificationRequest.getOtp());
-            Otp otp = otpService.findByEmailAndOtp(verificationRequest.getEmail(), otpValue);
-            otpService.deleteOtp(otp);
-        } else {
-            response.put("status", "error");
-            response.put("message", "Invalid OTP or role mismatch");
-        }
+        // ✅ No longer deleting OTP - instead, it's marked as "used" in verifyOtp()
         
-        return response;
+        // Get the user's role
+        String userRole = verificationRequest.getuserRole();
+
+        // Generate tokens
+        String accessToken = jwtService.generateAccessToken(verificationRequest.getEmail(), userRole);
+        String refreshToken = jwtService.generateRefreshToken(verificationRequest.getEmail());
+
+        response.put("status", "success");
+        response.put("access_token", accessToken);
+        response.put("refresh_token", refreshToken);
+        response.put("role", userRole);
+        response.put("message", "OTP verified successfully");
+    } else {
+        response.put("status", "error");
+        response.put("message", "Invalid OTP or role mismatch");
     }
+    return response;
+}
+
+
 }
