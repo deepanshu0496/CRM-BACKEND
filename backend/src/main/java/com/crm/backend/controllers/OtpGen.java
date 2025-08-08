@@ -57,12 +57,12 @@ public Map<String, String> generateOtpAndSend(@RequestBody OtpRequest otpRequest
         throw new IllegalArgumentException("Email is required");
     }
 
-    // Validate role exists and is one of the allowed values
+    // Validate role
     if (otpRequest.getRole() == null || otpRequest.getRole().trim().isEmpty()) {
         throw new IllegalArgumentException("Role is required");
     }
 
-    // List of valid roles (should match your frontend)
+    // Valid roles
     List<String> validRoles = Arrays.asList(
         "administrator",
         "Sales Representative", 
@@ -81,10 +81,13 @@ public Map<String, String> generateOtpAndSend(@RequestBody OtpRequest otpRequest
     String otp = generateOtp(6);
     Long otpValue = Long.parseLong(otp);
 
-    // Store OTP with user email and role
-    otpService.saveOtp(otpRequest.getEmail(), otpRequest.getRole(), otpValue);
+    // ✅ Now we handle if the user is not in DB
+    boolean success = otpService.saveOtp(otpRequest.getEmail(), otpRequest.getRole(), otpValue);
+    if (!success) {
+        throw new RuntimeException("User with this email and role does not exist");
+    }
 
-    // Send OTP via email
+    // Now send the OTP email
     try {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("regenxscout@regensportz.com");
@@ -102,6 +105,8 @@ public Map<String, String> generateOtpAndSend(@RequestBody OtpRequest otpRequest
     response.put("message", "OTP sent to email: " + otpRequest.getEmail());
     return response;
 }
+
+
 
 
     // verify otp

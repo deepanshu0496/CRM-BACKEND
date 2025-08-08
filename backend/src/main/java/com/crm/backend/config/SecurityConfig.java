@@ -1,6 +1,5 @@
 package com.crm.backend.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,26 +15,33 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                // ✅ Allow unauthenticated access to OTP endpoints
-                .requestMatchers("/api/v1/auth/otp/**").permitAll()
+        .authorizeHttpRequests(auth -> auth
+            // ✅ Public OTP endpoints
+            .requestMatchers("/api/v1/auth/otp/**").permitAll()
 
-                // ✅ Allow access to any other public endpoints (optional)
-                // .requestMatchers("/api/v1/public/**").permitAll()
+            // ✅ Example: Only `administrator` can access user management
+            .requestMatchers("/api/v1/users/**").hasAuthority("administrator")
 
-                // 🔐 All other endpoints require authentication
-                .anyRequest().authenticated()
-            );
+            // ✅ Example: Only Sales Manager or Representative can access leads
+            .requestMatchers("/api/v1/sales/**").hasAnyAuthority("Sales Manager", "Sales Representative")
+
+            // ✅ Example: Only Marketing Professionals
+            .requestMatchers("/api/v1/marketing/**").hasAuthority("Marketing Professional")
+
+            // ✅ Example: Only finance officers
+            .requestMatchers("/api/v1/finance/**").hasAuthority("finance_officer")
+
+            // ✅ All other endpoints require login
+            .anyRequest().authenticated()
+        );
 
         return http.build();
     }
 
-@Autowired
-private JwtAuthFilter jwtAuthFilter;
 
 
     @Bean
-public WebMvcConfigurer corsConfigurer() {
+    public WebMvcConfigurer corsConfigurer() {
     return new WebMvcConfigurer() {
         @Override
         public void addCorsMappings(CorsRegistry registry) {
@@ -44,5 +50,5 @@ public WebMvcConfigurer corsConfigurer() {
                 .allowedMethods("*");
         }
     };
-}
+    }
 }

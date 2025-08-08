@@ -1,7 +1,5 @@
 package com.crm.backend.services;
 
-
-
 import java.security.Key;
 import java.util.Date;
 
@@ -51,5 +49,9 @@ public class JwtService {
         return Jwts.parserBuilder().setSigningKey(key).build()
                 .parseClaimsJws(token).getBody().getSubject();
     }
-}
 
+    public String getRoleFromToken(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build()
+                .parseClaimsJws(token).getBody().get("role", String.class);
+    }
+}

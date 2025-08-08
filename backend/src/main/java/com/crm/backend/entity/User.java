@@ -1,5 +1,7 @@
 package com.crm.backend.entity;
 
+import java.util.Date;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -23,11 +25,22 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
+    @Column(name = "User_Name")
     private String userName;
 
     @Column(name = "User_Email")
     private String userEmail;
 
+    @Column(name= "User_Role")
     private String userRole;
+
+    @Column(name= "Department")
+    private String Department;
+
+    @Column(name= "Created_At")
+    private Date createdAt;
+
+    @Column(name= "Updated_At")
+    private Date updatedAt;
 
 }
